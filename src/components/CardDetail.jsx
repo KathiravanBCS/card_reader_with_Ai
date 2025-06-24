@@ -1,6 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, ListGroup, Container, Row, Col, Modal } from 'react-bootstrap';
+import { Button, Modal, Container } from 'react-bootstrap';
+
+const FIELD_LABELS = {
+  name: 'Name',
+  title: 'Title',
+  company_name: 'Company Name',
+  company_description: 'Company Description',
+  phone_number: 'Phone Number',
+  email: 'Email',
+  address: 'Address',
+  website: 'Website',
+};
+
+const FIELD_ICONS = {
+  name: <i className="bi bi-person me-1" />,
+  title: <i className="bi bi-briefcase me-1" />,
+  company_name: <i className="bi bi-building me-1" />,
+  company_description: <i className="bi bi-info-circle me-1" />,
+  phone_number: <i className="bi bi-telephone me-1" />,
+  email: <i className="bi bi-envelope me-1" />,
+  address: <i className="bi bi-geo-alt me-1" />,
+  website: <i className="bi bi-globe me-1" />,
+};
+
+const FIELD_ORDER = [
+  'name',
+  'title',
+  'company_name',
+  'company_description',
+  'phone_number',
+  'email',
+  'address',
+  'website',
+];
+
+const EXCLUDE_FIELDS = [
+  'id', 'image', 'image_url', 'qr_code', 'qrcode', 'qrCode', 'logo', 'created_at'
+];
 
 const CardDetail = ({ fetchCards }) => {
   const { id } = useParams();
@@ -43,27 +80,23 @@ const CardDetail = ({ fetchCards }) => {
 
   if (!card) return <div>Loading...</div>;
 
-  // Helper to render all card fields in a table layout, with image at top, excluding id and logo
+  // Render card details in a clean, modern, left-aligned layout with icons
   const renderTableDetails = (data) => {
     if (!data) return null;
-    const excludeFields = ['id', 'image', 'image_url', , 'qr_code', 'qrcode', 'qrCode']; // Exclude logo and QR code fields
-    const fieldOrder = [
-      'name', 'title', 'company_name', 'email', 'phone_number', 'website', 'address', 'mobile', 'created_at'
-    ];
-    const keys = [
-      ...fieldOrder.filter(k => data[k] && !excludeFields.includes(k)),
-      ...Object.keys(data).filter(k => !fieldOrder.includes(k) && !excludeFields.includes(k))
-    ];
+    // Only use the fields in FIELD_ORDER, in order, and show only if present
+    const orderedKeys = FIELD_ORDER.filter(k => data[k]);
+    if (orderedKeys.length === 0) return <div className="text-muted">No details available.</div>;
     return (
       <div className="table-responsive mt-3">
-        <table className="table table-borderless align-middle mb-0">
+        <table className="table table-borderless align-middle mb-0" style={{ background: 'none' }}>
           <tbody>
-            {keys.map(key => (
-              <tr key={key}>
-                <th className="text-end text-nowrap align-top" style={{ width: 120, fontWeight: 600, verticalAlign: 'top' }}>
-                  {key.replace(/_/g, ' ').replace(/\b([a-z])/g, c => c.toUpperCase())}
+            {orderedKeys.map((key, idx) => (
+              <tr key={key} style={{ borderBottom: idx !== orderedKeys.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                <th className="text-nowrap align-top" style={{ width: 170, fontWeight: 600, verticalAlign: 'top', color: '#222', background: 'none', textAlign: 'left', paddingTop: 12, paddingBottom: 8 }}>
+                  {FIELD_ICONS[key] || null}
+                  {FIELD_LABELS[key]}
                 </th>
-                <td style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{String(data[key])}</td>
+                <td style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: 16, background: 'none', textAlign: 'left', paddingTop: 12, paddingBottom: 8 }}>{String(data[key])}</td>
               </tr>
             ))}
           </tbody>
@@ -74,51 +107,44 @@ const CardDetail = ({ fetchCards }) => {
 
   return (
     <Container className="mt-4 mb-5 d-flex justify-content-center">
-      <div style={{ maxWidth: 420, width: '100%' }}>
-        <Card className="shadow-lg border-0 rounded-4" style={{ marginTop: 24 }}>
-          {/* Card preview image_url or base64 image, or placeholder */}
-          <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: 120, borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }}>
-            {card.image_url ? (
-              <img src={card.image_url} alt="Business Card" style={{ maxHeight: 100, maxWidth: '90%', borderRadius: 12, objectFit: 'contain' }} />
-            ) : card.image && typeof card.image === 'string' && card.image.length > 100 ? (
-              (() => {
-                let mime = 'image/jpeg';
-                if (card.image.startsWith('/9j/')) mime = 'image/jpeg';
-                if (card.image.startsWith('iVBOR')) mime = 'image/png';
-                return (
-                  <img
-                    src={`data:${mime};base64,${card.image}`}
-                    alt="Card"
-                    style={{ maxHeight: 100, maxWidth: '90%', borderRadius: 12, objectFit: 'contain', boxShadow: '0 2px 8px #0001' }}
-                  />
-                );
-              })()
-            ) : (
-              <div className="text-muted text-center w-100">
-                <i className="bi bi-card-image" style={{ fontSize: 48 }}></i>
-                <div style={{ fontSize: 14 }}>No Card Image</div>
-              </div>
-            )}
-          </div>
-          <Card.Body className="pb-2">
-            <h4 className="fw-bold mb-3">Card Details</h4>
-            {renderTableDetails(card)}
-          </Card.Body>
-          <Card.Footer className="bg-white border-0 pt-0 pb-3">
-            <div className="d-flex gap-2 justify-content-between">
-              <Button variant="primary" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm" onClick={handleEdit}>
-                <i className="bi bi-pencil"></i> Edit
-              </Button>
-              <Button variant="info" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm text-white" style={{background:'#1976d2'}} onClick={handleRetake}>
-                <i className="bi bi-camera"></i> Retake
-              </Button>
-              <Button variant="danger" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm" onClick={() => setShowDeleteModal(true)}>
-                <i className="bi bi-trash"></i> Delete
-              </Button>
+      <div style={{ maxWidth: 520, width: '100%' }}>
+        {/* Card preview image_url or base64 image, or placeholder */}
+        <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: 120, borderRadius: '1rem', marginBottom: 16 }}>
+          {card.image_url ? (
+            <img src={card.image_url} alt="Business Card" style={{ maxHeight: 100, maxWidth: '90%', borderRadius: 12, objectFit: 'contain' }} />
+          ) : card.image && typeof card.image === 'string' && card.image.length > 100 ? (
+            (() => {
+              let mime = 'image/jpeg';
+              if (card.image.startsWith('/9j/')) mime = 'image/jpeg';
+              if (card.image.startsWith('iVBOR')) mime = 'image/png';
+              return (
+                <img
+                  src={`data:${mime};base64,${card.image}`}
+                  alt="Card"
+                  style={{ maxHeight: 100, maxWidth: '90%', borderRadius: 12, objectFit: 'contain', boxShadow: '0 2px 8px #0001' }}
+                />
+              );
+            })()
+          ) : (
+            <div className="text-muted text-center w-100">
+              <i className="bi bi-card-image" style={{ fontSize: 48 }}></i>
+              <div style={{ fontSize: 14 }}>No Card Image</div>
             </div>
-          </Card.Footer>
-        </Card>
-
+          )}
+        </div>
+        <h4 className="fw-bold mb-3" style={{ textAlign: 'left' }}>Card Details</h4>
+        {renderTableDetails(card)}
+        <div className="d-flex gap-2 justify-content-center mt-4">
+          <Button variant="primary" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm" onClick={handleEdit}>
+            <i className="bi bi-pencil"></i> Edit
+          </Button>
+          <Button variant="info" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm text-white" style={{background:'#1976d2'}} onClick={handleRetake}>
+            <i className="bi bi-camera"></i> Retake
+          </Button>
+          <Button variant="danger" className="flex-fill d-flex align-items-center justify-content-center gap-2 shadow-sm" onClick={() => setShowDeleteModal(true)}>
+            <i className="bi bi-trash"></i> Delete
+          </Button>
+        </div>
         <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
           <Modal.Header closeButton>
             <Modal.Title>Delete Card</Modal.Title>

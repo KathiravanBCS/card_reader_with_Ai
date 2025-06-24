@@ -74,13 +74,18 @@ export default function ScanCamera({ onScan }) {
     formData.append("image", captured, "capture.jpg");
     try {
       const res = await fetch("http://localhost:5000/analyze", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Server error: " + res.status);
       const data = await res.json();
-      setResult(data);
-      setSuccess(true);
-      if (onScan) onScan(data);
+      if (!res.ok || data.error) {
+        setResult({ error: data.error || `Server error: ${res.status}` });
+        setSuccess(false);
+      } else {
+        setResult(data);
+        setSuccess(true);
+        if (onScan) onScan(data);
+      }
     } catch (err) {
       setResult({ error: err.message });
+      setSuccess(false);
     }
     setLoading(false);
   };
@@ -179,8 +184,10 @@ export default function ScanCamera({ onScan }) {
       {loading && <div className="camera-overlay">Scanning...</div>}
       {/* Show result below the capture area, not as overlay */}
       {result && !loading && (
-        <div className="camera-result-card alert alert-success mt-4" style={{ wordBreak: 'break-word', boxShadow: '0 4px 16px rgba(0,0,0,0.10)', borderRadius: 16, padding: 20, maxWidth: 700, margin: '32px auto 0 auto', background: '#fff' }}>
-          <strong style={{ fontSize: 20 }}>Scan Successful!</strong>
+        <div className={`camera-result-card alert mt-4 ${result.error ? 'alert-danger' : 'alert-success'}`} style={{ wordBreak: 'break-word', boxShadow: '0 4px 16px rgba(0,0,0,0.10)', borderRadius: 16, padding: 20, maxWidth: 700, margin: '32px auto 0 auto', background: '#fff' }}>
+          <strong style={{ fontSize: 20 }}>
+            {result.error ? 'Scan Failed' : 'Scan Successful!'}
+          </strong>
           <div className="mt-2">{renderResult(result)}</div>
           <button className="btn btn-outline-secondary mt-2" onClick={recapture} type="button">Scan Another</button>
         </div>

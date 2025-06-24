@@ -9,7 +9,11 @@ const SearchBox = ({ value, onChange, placeholder }) => (
         placeholder={placeholder || 'Search...'}
         value={value}
         onChange={onChange}
-        style={{ boxShadow: '0 1px 4px #eee', fontSize: 15 }}
+        style={{
+          boxShadow: '0 1px 4px #eee',
+          fontSize: 17, // Increased font size
+          height: '48px', // Increased height
+        }}
       />
     </Col>
   </Row>
