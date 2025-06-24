@@ -35,7 +35,7 @@ def analyze_image():
         if match:
             card_data = json.loads(match.group(0))
             main_fields = [
-                "Name", "Title", "Company Name", "Phone Number", "Email", "Website"
+                "Name", "Title", "Company Name", "Company Description", "Phone Number", "Email", "Address", "Website"
             ]
             ordered = {field: card_data.get(field) for field in main_fields}
             for k, v in card_data.items():
@@ -48,8 +48,10 @@ def analyze_image():
                 name=card_data.get("Name"),
                 title=card_data.get("Title"),
                 company_name=card_data.get("Company Name"),
+                company_description=card_data.get("Company Description"),
                 phone_number=card_data.get("Phone Number"),
                 email=card_data.get("Email"),
+                address=card_data.get("Address"),
                 website=card_data.get("Website"),
                 extra_fields=json.dumps({k: v for k, v in card_data.items() if k not in main_fields}),
                 created_at=datetime.datetime.utcnow()
@@ -84,8 +86,7 @@ def get_cards():
     cards = query.order_by(Card.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
     result = []
     possible_fields = [
-        'id', 'name', 'title', 'company_name', 'phone_number', 'email', 'website', 'created_at',
-        'Address', 'Other', 'Social Media', 'Contact Person', 'Phone Numbers'
+        'id', 'name', 'title', 'company_name', 'company_description', 'phone_number', 'email', 'address', 'website', 'created_at'
     ]
     for card in cards:
         item = {
@@ -93,8 +94,10 @@ def get_cards():
             'name': card.name,
             'title': card.title,
             'company_name': card.company_name,
+            'company_description': getattr(card, 'company_description', None),
             'phone_number': card.phone_number,
             'email': card.email,
+            'address': getattr(card, 'address', None),
             'website': card.website,
             'created_at': card.created_at.isoformat(),
             'image': base64.b64encode(card.image).decode('utf-8') if card.image else None,
@@ -129,15 +132,22 @@ def get_card(card_id):
         'name': card.name,
         'title': card.title,
         'company_name': card.company_name,
+        'company_description': getattr(card, 'company_description', None),
         'phone_number': card.phone_number,
         'email': card.email,
+        'address': getattr(card, 'address', None),
         'website': card.website,
         'created_at': card.created_at.isoformat(),
         'image': base64.b64encode(card.image).decode('utf-8'),
     }
     if card.extra_fields:
         try:
-            item.update(json.loads(card.extra_fields))
+            extra = json.loads(card.extra_fields)
+            # Remove logo and QR code fields if present
+            for k in ['Logo', 'QR Code', 'logo', 'qr_code', 'qrcode', 'qrCode']:
+                if k in extra:
+                    del extra[k]
+            item.update(extra)
         except Exception:
             pass
     db.close()
